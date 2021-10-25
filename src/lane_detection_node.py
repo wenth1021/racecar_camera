@@ -53,10 +53,12 @@ class LaneDetection:
         self.Value_low = 0
         self.Value_high = 120
         self.inverted_filter = 0
-        self.number_of_lines = 100
+        self.number_of_lines = 5
         self.error_threshold = 0.18
         self.min_width = 10
         self.max_width = 500
+        # original width: 672
+        # original height: 376
         self.start_height = 200
         self.bottom_height = 375
         self.left_width = 100
@@ -88,6 +90,16 @@ class LaneDetection:
         # cropping
         self.image_width = int(self.right_width - self.left_width)
         img = frame[self.start_height:self.bottom_height, self.left_width:self.right_width]
+        left_tri = np.array([(0, 0), (0, img.shape[0]-1), (int(img.shape[1] * 0.25), 0)])
+        right_tri = np.array([(img.shape[1]-1, 0), (img.shape[1]-1, img.shape[0]-1), (int(img.shape[1] * 0.75), 0)])
+        img = cv2.drawContours(img, [left_tri, right_tri], -1, (255,255,255), -1)
+
+        img = cv2.GaussianBlur(img, (5,5), cv2.BORDER_DEFAULT)
+        kernel_3 = np.ones((3,3), np.uint8)
+        kernel_5 = np.ones((5,5), np.uint8)
+        img = cv2.erode(img, kernel_3, iterations=1)
+        img = cv2.dilate(img, kernel_5, iterations=1)
+
         cv2.imshow('cropped', img)
 
         image_width = self.right_width-self.left_width
@@ -140,72 +152,73 @@ class LaneDetection:
             if self.min_width < w < self.max_width:
                 try:
                     x, y, w, h = cv2.boundingRect(contour)
-                    img = cv2.drawContours(img.astype(np.float32), contour, -1, (0, 255, 0), 3)
+                    # img = cv2.drawContours(img.astype(np.float32), contour, -1, (0, 255, 0), 3)
+                    img = cv2.drawContours(img, contour, -1, (0, 255, 0), 3)
                     m = cv2.moments(contour)
                     cx = int(m['m10'] / m['m00'])
                     cy = int(m['m01'] / m['m00'])
                     centers.append([cx, cy])
                     cx_list.append(cx)
                     cy_list.append(cy)
-                    cv2.circle(img, (cx, cy), 7, (0, 255, 0), -1)
-                    img = cv2.line(img, start_point, end_point, (0,255,0), 4)
+                    cv2.circle(img, (cx, cy), 7, (255, 0, 0), -1)
+                    img = cv2.line(img, start_point, end_point, (0,0,0), 2)
                     img = cv2.line(img, start_point_thresh_pos, end_point_thresh_pos, (0,0,255), 2)
                     img = cv2.line(img, start_point_thresh_neg, end_point_thresh_neg, (0,0,255), 2)
                 except ZeroDivisionError:
                     pass
-        # # Further image processing to determine optimal steering value
-        # try:
-        #     if len(cx_list) > 1:
-        #         error_list = []
-        #         count = 0
-        #         for cx_pos in cx_list:
-        #             error = float(((self.image_width/2) - cx_pos) / (self.image_width/2))
-        #             error_list.append(error)
-        #         avg_error = (sum(error_list) / float(len(error_list)))
-        #         p_horizon_diff = error_list[0] - error_list[-1]
-        #         if abs(p_horizon_diff) <= self.error_threshold:
-        #             error_x = avg_error
-        #             pixel_error = int((self.image_width/2)*(1-error_x))
-        #             mid_x, mid_y = pixel_error, int((image_height/2))
-        #             #rospy.loginfo(f"straight curve: {error_x}, {error_list}")
-        #         else:
-        #             for error in error_list:
-        #                 if abs(error) < self.error_threshold:
-        #                     error = 1
-        #                     error_list[count] = error
-        #                 count+=1
-        #             error_x = min(error_list, key=abs)
-        #             error_x_index = error_list.index(min(error_list, key=abs))
-        #             mid_x, mid_y = cx_list[error_x_index], cy_list[error_x_index]
-        #             #rospy.loginfo(f"curvy road: {error_x}, {error_list}")
-        #
-        #         cv2.circle(img, (mid_x, mid_y), 7, (255, 0, 0), -1)
-        #         start_point_error = (int(image_width/2), mid_y)
-        #         img = cv2.line(img, start_point_error, (mid_x, mid_y), (0,0,255), 4)
-        #         self.centroid_error.data = float(error_x)
-        #         self.centroid_error_publisher.publish(self.centroid_error)
-        #         centers = []
-        #         cx_list = []
-        #         cy_list = []
-        #     elif len(cx_list) == 1:
-        #         mid_x, mid_y = cx_list[0], cy_list[0]
-        #         error_x = float(((self.image_width/2) - mid_x) / (self.image_width/2))
-        #         cv2.circle(img, (mid_x, mid_y), 7, (0, 0, 255), -1)
-        #         self.centroid_error.data = error_x
-        #         self.centroid_error_publisher.publish(self.centroid_error)
-        #         rospy.loginfo("only detected one line")
-        #
-        #     centers = []
-        #     cx_list = []
-        #     cy_list = []
-        #     error_list = [0] * self.number_of_lines
-        # except ValueError:
-        #     pass
+
+        # Further image processing to determine optimal steering value
+        try:
+            if len(cx_list) >= 1:
+                error_list = []
+                count = 0
+                for cx_pos in cx_list:
+                    error = float((float(self.image_width/2) - cx_pos) / (self.image_width/2))
+                    error_list.append(error)
+                avg_error = (sum(error_list) / float(len(error_list)))
+                p_horizon_diff = error_list[0] - error_list[-1]
+
+                for error in error_list:
+                    if abs(error) < self.error_threshold:
+                        error = 1
+                        error_list[count] = error
+                    count += 1
+                error_x = min(error_list, key=abs)
+                error_x_index = error_list.index(min(error_list, key=abs))
+                cy_index = cy_list.index(max(cy_list, key=abs))
+                mid_x, mid_y = cx_list[cy_index], cy_list[cy_index]
+                print("curvy road: {}, {}".format(error_x, error_list))
+        
+                cv2.circle(img, (mid_x, mid_y), 7, (255, 255, 255), -1)
+                start_point_error = (int(image_width/2), mid_y)
+                img = cv2.line(img, start_point_error, (mid_x, mid_y), (0,0,255), 4)
+                self.centroid_error = Float32()
+                self.centroid_error.data = float(error_x)
+                self.centroid_error_publisher.publish(self.centroid_error)
+                centers = []
+                cx_list = []
+                cy_list = []
+            # elif len(cx_list) == 1:
+            #     mid_x, mid_y = cx_list[0], cy_list[0]
+            #     error_x = float(((self.image_width/2) - mid_x) / (self.image_width/2))
+            #     cv2.circle(img, (mid_x, mid_y), 7, (255, 255, 255), -1)
+            #     self.centroid_error = Float32()
+            #     self.centroid_error.data = error_x
+            #     self.centroid_error_publisher.publish(self.centroid_error)
+            #     print("only detected one line")
+        
+            centers = []
+            cx_list = []
+            cy_list = []
+            error_list = [0] * self.number_of_lines
+        except ValueError:
+            pass
 
         # plotting results
         cv2.imshow('img', img)
         cv2.imshow('blackAndWhiteImage', blackAndWhiteImage)
         cv2.waitKey(1)
+        print(mid_x, mid_y)
 
 
 def main():
