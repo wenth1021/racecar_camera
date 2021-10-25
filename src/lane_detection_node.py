@@ -48,7 +48,7 @@ class LaneDetection:
         # self.right_width = rospy.get_param('camera_right_width')
         self.Hue_low = 32
         self.Hue_high = 53
-        self.Saturation_low = 100
+        self.Saturation_low = 80
         self.Saturation_high = 255
         self.Value_low = 0
         self.Value_high = 255
