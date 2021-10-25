@@ -46,12 +46,12 @@ class LaneDetection:
         # self.bottom_height = rospy.get_param('camera_bottom_height')
         # self.left_width = rospy.get_param('camera_left_width')
         # self.right_width = rospy.get_param('camera_right_width')
-        self.Hue_low = 0
-        self.Hue_high = 255
-        self.Saturation_low = 0
+        self.Hue_low = 32
+        self.Hue_high = 53
+        self.Saturation_low = 100
         self.Saturation_high = 255
         self.Value_low = 0
-        self.Value_high = 120
+        self.Value_high = 255
         self.inverted_filter = 0
         self.number_of_lines = 5
         self.error_threshold = 0.18
@@ -218,7 +218,7 @@ class LaneDetection:
         cv2.imshow('img', img)
         cv2.imshow('blackAndWhiteImage', blackAndWhiteImage)
         cv2.waitKey(1)
-        print(mid_x, mid_y)
+        #print(mid_x, mid_y)
 
 
 def main():
