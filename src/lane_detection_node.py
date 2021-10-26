@@ -180,7 +180,7 @@ class LaneDetection:
 
                 for error in error_list:
                     if abs(error) < self.error_threshold:
-                        error = 1
+                        error = 0
                         error_list[count] = error
                     count += 1
                 error_x = min(error_list, key=abs)
