@@ -50,8 +50,8 @@ class LaneDetection:
         self.Hue_high = 255
         self.Saturation_low = 0
         self.Saturation_high = 255
-        self.Value_low = 0
-        self.Value_high = 120
+        self.Value_low = 160
+        self.Value_high = 255
         self.inverted_filter = 0
         self.number_of_lines = 5
         self.error_threshold = 0.18
@@ -61,8 +61,8 @@ class LaneDetection:
         # original height: 376
         self.start_height = 200
         self.bottom_height = 375
-        self.left_width = 100
-        self.right_width = 571
+        self.left_width = 0
+        self.right_width = 671
 
         # Display Parameters
         rospy.loginfo(
@@ -90,9 +90,9 @@ class LaneDetection:
         # cropping
         self.image_width = int(self.right_width - self.left_width)
         img = frame[self.start_height:self.bottom_height, self.left_width:self.right_width]
-        left_tri = np.array([(0, 0), (0, img.shape[0]-1), (int(img.shape[1] * 0.25), 0)])
-        right_tri = np.array([(img.shape[1]-1, 0), (img.shape[1]-1, img.shape[0]-1), (int(img.shape[1] * 0.75), 0)])
-        img = cv2.drawContours(img, [left_tri, right_tri], -1, (255,255,255), -1)
+        # left_tri = np.array([(0, 0), (0, img.shape[0]-1), (int(img.shape[1] * 0.25), 0)])
+        # right_tri = np.array([(img.shape[1]-1, 0), (img.shape[1]-1, img.shape[0]-1), (int(img.shape[1] * 0.75), 0)])
+        # img = cv2.drawContours(img, [left_tri, right_tri], -1, (255,255,255), -1)
 
         img = cv2.GaussianBlur(img, (5,5), cv2.BORDER_DEFAULT)
         kernel_3 = np.ones((3,3), np.uint8)
