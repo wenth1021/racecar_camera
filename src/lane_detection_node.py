@@ -48,21 +48,21 @@ class LaneDetection:
         # self.right_width = rospy.get_param('camera_right_width')
         self.Hue_low = 32
         self.Hue_high = 53
-        self.Saturation_low = 80
+        self.Saturation_low = 100
         self.Saturation_high = 255
         self.Value_low = 0
         self.Value_high = 255
         self.inverted_filter = 0
         self.number_of_lines = 5
-        self.error_threshold = 0.18
-        self.min_width = 10
-        self.max_width = 500
+        self.error_threshold = 0.1
+        self.min_width = 0
+        self.max_width = 671
         # original width: 672
         # original height: 376
-        self.start_height = 200
+        self.start_height = 80
         self.bottom_height = 375
-        self.left_width = 100
-        self.right_width = 571
+        self.left_width = 0
+        self.right_width = 671
 
         # Display Parameters
         rospy.loginfo(
@@ -90,9 +90,9 @@ class LaneDetection:
         # cropping
         self.image_width = int(self.right_width - self.left_width)
         img = frame[self.start_height:self.bottom_height, self.left_width:self.right_width]
-        left_tri = np.array([(0, 0), (0, img.shape[0]-1), (int(img.shape[1] * 0.25), 0)])
-        right_tri = np.array([(img.shape[1]-1, 0), (img.shape[1]-1, img.shape[0]-1), (int(img.shape[1] * 0.75), 0)])
-        img = cv2.drawContours(img, [left_tri, right_tri], -1, (255,255,255), -1)
+        # left_tri = np.array([(0, 0), (0, img.shape[0]-1), (int(img.shape[1] * 0.25), 0)])
+        # right_tri = np.array([(img.shape[1]-1, 0), (img.shape[1]-1, img.shape[0]-1), (int(img.shape[1] * 0.75), 0)])
+        # img = cv2.drawContours(img, [left_tri, right_tri], -1, (255,255,255), -1)
 
         img = cv2.GaussianBlur(img, (5,5), cv2.BORDER_DEFAULT)
         kernel_3 = np.ones((3,3), np.uint8)
@@ -185,8 +185,9 @@ class LaneDetection:
                     count += 1
                 error_x = min(error_list, key=abs)
                 error_x_index = error_list.index(min(error_list, key=abs))
-                cy_index = cy_list.index(max(cy_list, key=abs))
+                cy_index = cy_list.index(min(cy_list, key=abs))
                 mid_x, mid_y = cx_list[cy_index], cy_list[cy_index]
+                error_x = error_list[cy_index]
                 print("curvy road: {}, {}".format(error_x, error_list))
         
                 cv2.circle(img, (mid_x, mid_y), 7, (255, 255, 255), -1)
@@ -198,6 +199,23 @@ class LaneDetection:
                 centers = []
                 cx_list = []
                 cy_list = []
+
+                # take average centroi
+                # avg_x = sum(cx_list) / float(len(cx_list))
+                # avg_y = sum(cy_list) / float(len(cy_list))
+                # avg_error = float((float(self.image_width/2) - avg_x) / (self.image_width/2))
+
+                # print("curvy road: {}".format(avg_error))
+        
+                # avg_x = int(avg_x)
+                # avg_y = int(avg_y)
+                # cv2.circle(img, (avg_x, avg_y), 7, (255, 255, 255), -1)
+                # start_point_error = (int(image_width/2), avg_y)
+                # img = cv2.line(img, start_point_error, (avg_x, avg_y), (0,0,255), 4)
+                # self.centroid_error = Float32()
+                # self.centroid_error.data = float(avg_error)
+                # self.centroid_error_publisher.publish(self.centroid_error)
+
             # elif len(cx_list) == 1:
             #     mid_x, mid_y = cx_list[0], cy_list[0]
             #     error_x = float(((self.image_width/2) - mid_x) / (self.image_width/2))
