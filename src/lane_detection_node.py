@@ -102,13 +102,15 @@ class LaneDetection:
             '\nright_width: {}'.format(self.right_width))
 
     def overtake_decision(self, data):
-        self.left=True
+        print("TRY OVERTAKE")
         other_x=data.point.x
         other_y=data.point.y
         other_rel_speed = data.point.z
-        if(other_y<self.overtake_threshold and (other_x<0.485 or other_x > -0.235) and self.overtake_time>self.overtake_time_threshold):
+        current_time=rospy.get_time()
+        if(other_y<self.overtake_threshold and (other_x<0.485 or other_x > -0.235) and current_time>self.overtake_time+self.overtake_time_threshold and other_rel_speed<-0.5):
             self.left=not self.left     # Change Lanes
             self.overtake_time=rospy.get_time()     #Time of decision
+            print("Time: {}", self.overtake_time)
             self.overtake_threshold=(self.overtake_threshold+0.33)/other_rel_speed      #Time to overtake
 
 
