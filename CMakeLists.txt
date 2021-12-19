@@ -41,7 +41,7 @@ target_link_libraries(onnx_node
   nvinfer
 )
 
-add_executable(waypoint_follow src/line_follow.cpp)
+add_executable(waypoint_follow src/waypoint_follow.cpp)
 
 target_link_libraries(waypoint_follow
   ${catkin_LIBRARIES}
