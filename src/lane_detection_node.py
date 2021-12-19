@@ -3,6 +3,7 @@ import rospy
 import cv2
 import numpy as np
 from std_msgs.msg import Int32, Int32MultiArray, Float32, Bool
+from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import Image
 import time
 from Tkinter import Button, Tk
@@ -11,6 +12,7 @@ from Tkinter import Button, Tk
 LANE_DETECTION_NODE_NAME = 'side_lane_detection_node'
 CAMERA_TOPIC_NAME = '/zed2/zed_node/rgb/image_rect_color'
 CENTROID_TOPIC_NAME = '/centroid'
+OTHER_CAR_TOPIC_NAME = '/racecar_position'
 
 global mid_x, mid_y
 mid_x = Int32()
@@ -29,6 +31,7 @@ class LaneDetection:
         self.init_node = rospy.init_node(LANE_DETECTION_NODE_NAME, anonymous=False)
         self.camera_subscriber = rospy.Subscriber(CAMERA_TOPIC_NAME, Image, self.locate_centroid)
         self.centroid_error_publisher = rospy.Publisher(CENTROID_TOPIC_NAME, Float32, queue_size=1)
+        self.other_vehicle_pose_subscriber = rospy.Subscriber(OTHER_CAR_TOPIC_NAME,PointStamped, self.overtake_decision)
         self.Hue_low = 20 # 32
         self.Hue_high = 60 # 53
         self.Saturation_low = 90
@@ -59,7 +62,11 @@ class LaneDetection:
         self.lane_Saturation_high = 255 
         self.lane_Value_low = 190
         self.lane_Value_high = 255
+
         self.left=True
+        self.overtake_threshold = 2
+        self.overtake_time = 0.0
+        self.overtake_time_threshold = 2.33/1.2     # Distance/Speed (Assuming static obstacle)
 
         def left_callback():
             self.left=True
@@ -94,7 +101,18 @@ class LaneDetection:
             '\nleft_width: {}'.format(self.left_width) +
             '\nright_width: {}'.format(self.right_width))
 
-    
+    def overtake_decision(self, data):
+        print("TRY OVERTAKE")
+        other_x=data.point.x
+        other_y=data.point.y
+        other_rel_speed = data.point.z
+        current_time=rospy.get_time()
+        if(other_y<self.overtake_threshold and (other_x<0.485 or other_x > -0.235) and current_time>self.overtake_time+self.overtake_time_threshold and other_rel_speed<-0.5):
+            self.left=not self.left     # Change Lanes
+            self.overtake_time=rospy.get_time()     #Time of decision
+            print("Time: {}", self.overtake_time)
+            self.overtake_threshold=(self.overtake_threshold+0.33)/other_rel_speed      #Time to overtake
+
 
     def locate_centroid(self, data):
         # Image processing from rosparams
