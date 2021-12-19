@@ -3,8 +3,7 @@
 #include "bbox_infer_node.h"
 #include "infer_process.h"
 extern void setupEngine(string ENGINE_FILENAME);
-//extern void infer(cv::Mat color_frame, result_3d* result_temp, int batchSize);
-extern void infer_dummy(cv::Mat& color_frame, result_3d* result_temp, int batchSize);
+extern void infer(cv::Mat& color_frame, result_3d* result_temp, int batchSize);
 extern void Mat_to_CHW(vector<float> &data, cv::Mat& frame);
 extern void destroyEngine();
 extern void post_process(result_3d* result_temp, vector<float> &select_box);
@@ -38,14 +37,8 @@ void BBoxInfer::colorCallback(const sensor_msgs::ImageConstPtr& msg)
     int cols = label_color_frame.cols;
 
     // run inference
-    // float result_3d[OUTPUT_C][OUTPUT_H][OUTPUT_W];
-    // cout << result_3d[OUTPUT_C - 1][OUTPUT_H - 1][OUTPUT_H - 1] <<endl;
     result_3d result_temp;
-    auto startTime = std::chrono::high_resolution_clock::now();
-    infer_dummy(color_frame, &result_temp, 1);
-    auto endTime = std::chrono::high_resolution_clock::now();
-    float inferTime = (inferTime + std::chrono::duration<float, std::milli>(endTime - startTime).count()) / 2.0;
-    cout << 1000/inferTime << endl;
+    infer(color_frame, &result_temp, 1);
     
     // run threholding and voting suppresion
     vector<float> select_box = {0.0, 0.0, 0.0, 0.0, 0.0};

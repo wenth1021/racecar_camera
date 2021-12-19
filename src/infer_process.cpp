@@ -133,31 +133,7 @@ void doInference(vector<float> &input, vector<float> &output, int batchSize)
     CHECK(cudaFree(buffers[outputIndex]));
 }
 
-// void infer(cv::Mat color_frame, result_3d* result_temp, int batchSize)
-// {   
-//     cout << "In infer()!" << endl;
-//     float color_data_input[INPUT_C * INPUT_H * INPUT_W];
-//     Mat_to_CHW(&color_data_input, color_frame);
-//     cout << "Mat converted to CHW!" << endl;
-//     float result[OUTPUT_C * OUTPUT_H * OUTPUT_W];
-//     // float result_3d[OUTPUT_C][OUTPUT_H][OUTPUT_W];
-//     doInference(&color_data_input, &result, 1);
-//     cout << "Inference Done!\n";
-
-//     for (int i = 0; i < OUTPUT_C; i++) {
-//         for (int j = 0; j < OUTPUT_H; j++) {
-//             float* row = result + ((i * OUTPUT_H) + j) * OUTPUT_W;
-//             for (int k = 0; k < OUTPUT_W; k++) {
-//                 (*result_temp).data[i][j][k] = row[k];
-//             }
-// //            cout << result_3d[i][j][0] << " " << result_3d[i][j][1] << " " << result_3d[i][j][2] << " " << result_3d[i][j][3] << " " << result_3d[i][j][4] << " "
-// //                 << result_3d[i][j][5] << " " << result_3d[i][j][6] << " " << result_3d[i][j][7] << " " << result_3d[i][j][8] << " " << result_3d[i][j][9] << endl;
-//         }
-// //        cout << " " << endl;
-//     }
-// }
-
-void infer_dummy(cv::Mat& color_frame, result_3d* result_temp, int batchSize)
+void infer(cv::Mat& color_frame, result_3d* result_temp, int batchSize)
 {   
     vector<float> color_data_input;
     color_data_input.resize(INPUT_C * INPUT_H * INPUT_W);
@@ -176,7 +152,6 @@ void infer_dummy(cv::Mat& color_frame, result_3d* result_temp, int batchSize)
         //    cout << (*result_temp).data[i][j][0] << " " << (*result_temp).data[i][j][1] << " " << (*result_temp).data[i][j][2] << " " << (*result_temp).data[i][j][3] << " " << (*result_temp).data[i][j][4] << " "
         //         << (*result_temp).data[i][j][5] << " " << (*result_temp).data[i][j][6] << " " << (*result_temp).data[i][j][7] << " " << (*result_temp).data[i][j][8] << " " << (*result_temp).data[i][j][9] << endl;
         }
-//        cout << " " << endl;
     }
     return;
 }
@@ -288,7 +263,6 @@ int voting_suppression(vector<vector<float>>result_box, float voting_threshold)
 
 void post_process(result_3d* result_temp, vector<float> &select_box)
 {
-    // vector<float> select_box = {0.0, 0.0, 0.0, 0.0, 0.0};
     // run threholding and voting suppresion
     vector<vector<float>> boxes_probs;
     result_to_box(result_temp, confi_threshold, boxes_probs);
