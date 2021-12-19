@@ -56,7 +56,7 @@ class RacecarPoseEstimate:
         self.box_center_y = int(data.point.y * 376)
         print('Center: {}, {}'.format(self.box_center_x, self.box_center_y))
         if self.frame is not None:
-            self.frame = cv2.circle(self.frame, (self.box_center_x, self.box_center_y), 7, (255, 0, 0), -1)
+            self.frame = cv2.circle(self.frame, (self.box_center_x, self.box_center_y), 7, (255, 255, 255), -1)
             cv2.imshow('frame', self.frame)
             cv2.waitKey(1)
 

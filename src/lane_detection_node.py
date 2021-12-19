@@ -32,9 +32,9 @@ class LaneDetection:
         self.camera_subscriber = rospy.Subscriber(CAMERA_TOPIC_NAME, Image, self.locate_centroid)
         self.centroid_error_publisher = rospy.Publisher(CENTROID_TOPIC_NAME, Float32, queue_size=1)
         self.other_vehicle_pose_subscriber = rospy.Subscriber(OTHER_CAR_TOPIC_NAME,PointStamped, self.overtake_decision)
-        self.Hue_low = 20 # 32
-        self.Hue_high = 60 # 53
-        self.Saturation_low = 90
+        self.Hue_low = 32 # 32
+        self.Hue_high = 53 # 53
+        self.Saturation_low = 70
         self.Saturation_high = 255
         self.Value_low = 0
         self.Value_high = 255
@@ -67,6 +67,7 @@ class LaneDetection:
         self.overtake_threshold = 2
         self.overtake_time = 0.0
         self.overtake_time_threshold = 2.33/1.2     # Distance/Speed (Assuming static obstacle)
+        self.swap_back = True
 
         def left_callback():
             self.left=True
@@ -102,22 +103,30 @@ class LaneDetection:
             '\nright_width: {}'.format(self.right_width))
 
     def overtake_decision(self, data):
-        print("TRY OVERTAKE")
+        print("receive  racecar pose")
         other_x=data.point.x
         other_y=data.point.y
         other_rel_speed = data.point.z
+        print("Y distance: {}".format(other_y))
+        print("X distance: {}".format(other_x))
         current_time=rospy.get_time()
-        if(other_y<self.overtake_threshold and (other_x<0.485 or other_x > -0.235) and current_time>self.overtake_time+self.overtake_time_threshold and other_rel_speed<-0.5):
+        print("current time: {}".format(current_time))
+        print("overtake_time: {}".format(self.overtake_time))
+        if (other_y < self.overtake_threshold 
+            and (other_x < 0.485 and other_x > -0.235) 
+            and current_time > self.overtake_time + 10):
+            #and current_time > self.overtake_time + self.overtake_time_threshold):
+            print("Lane Changed")
             self.left=not self.left     # Change Lanes
             self.overtake_time=rospy.get_time()     #Time of decision
-            print("Time: {}", self.overtake_time)
-            self.overtake_threshold=(self.overtake_threshold+0.33)/other_rel_speed      #Time to overtake
+            self.swap_back = False
+            #self.overtake_threshold=-(self.overtake_threshold+0.33)/other_rel_speed      #Time to overtake
 
 
     def locate_centroid(self, data):
         # Image processing from rosparams
         frame = decodeImage(data.data, 376, 672)
-        cv2.imshow('frame', frame)
+        #cv2.imshow('frame', frame)
 
         # cropping
         self.image_width = int(self.right_width - self.left_width)
@@ -132,7 +141,7 @@ class LaneDetection:
         #img = cv2.erode(img, kernel_3, iterations=1)
         img = cv2.dilate(img, kernel_5, iterations=1)
 
-        cv2.imshow('cropped', img)
+        #cv2.imshow('cropped', img)
 
         image_width = self.right_width-self.left_width
         image_height = self.bottom_height-self.start_height
@@ -199,15 +208,8 @@ class LaneDetection:
         start_point = (int(self.image_width/2),0)
         end_point = (int(self.image_width/2),int(self.bottom_height))
 
-        start_point_thresh_pos_x = int((self.image_width/2)*(1-self.error_threshold))
-        start_point_thresh_neg_x = int((self.image_width/2)*(1+self.error_threshold))
-        
-        start_point_thresh_pos = (start_point_thresh_pos_x,0)
-        end_point_thresh_pos = (start_point_thresh_pos_x, int(self.bottom_height))
-
-        start_point_thresh_neg = (start_point_thresh_neg_x,0)
-        end_point_thresh_neg = (start_point_thresh_neg_x, int(self.bottom_height))
-
+       # start_point_thresh_pos_x = int((self.image_width/2)*(1-self.error_threshold))
+        #start_point_thresh_neg_x = int((self.image_width/2)*(1+self.error_threshold))
         # plotting contours and their centroids
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
@@ -235,11 +237,9 @@ class LaneDetection:
                 error_list = []
                 count = 0
                 for cx_pos in cx_list:
-                    error = float((float(self.image_width/2) - cx_pos) / (self.image_width/2))
+                    #error = float((float(self.image_width/2) - cx_pos) / (self.image_width/2))
                     error = float((float(self.image_width/2) - (cx_pos+float(self.image_width)/4)) / (self.image_width/2)) # TEST FOR LANE
                     error_list.append(error)
-                avg_error = (sum(error_list) / float(len(error_list)))
-                p_horizon_diff = error_list[0] - error_list[-1]
 
                 for error in error_list:
                     if abs(error) < self.error_threshold:
@@ -256,7 +256,7 @@ class LaneDetection:
                     cy_index=1
                     print("Not enough points")
                 #mid_y=(cy_list[cy_index]+cy_list[cy_list.index(sorted(cy_list)[2])])/2
-                print("mid_y: {}".format(mid_y))
+                #print("mid_y: {}".format(mid_y))
                 #mid_x=(cx_list[cy_index]+cmx)/2
                 #mid_x2=(cx_list[cy_index]+dmx)/2
                 #side_change=(mid_y-35)/float(300)
@@ -284,6 +284,9 @@ class LaneDetection:
                 cv2.circle(img, (int(mid_x2), draw_y), 7, (0, 0, 255), -1)
                 #img = cv2.line(img, start_point_error, (mid_x2, mid_y), (0,0,255), 4)
                 self.centroid_error = Float32()
+                if(rospy.get_time()>self.overtake_time+2.5 and self.swap_back==False):
+                    self.swap_back=True
+                    self.left = not self.left
                 if(self.left):
                     error_x=-err2/985
                     print("following left")
@@ -306,8 +309,8 @@ class LaneDetection:
 
         # plotting results
         #cv2.imshow('lane_blackAndWhiteImage', lane_blackAndWhiteImage)
-        cv2.imshow('img', img)
-        cv2.imshow('blackAndWhiteImage', blackAndWhiteImage)
+        #cv2.imshow('img', img)
+        #cv2.imshow('blackAndWhiteImage', blackAndWhiteImage)
         
         cv2.waitKey(1)
         #print(mid_x, mid_y)
@@ -315,7 +318,7 @@ class LaneDetection:
 
 def main():
     lane_detector = LaneDetection()
-    rate = rospy.Rate(15)
+    rate = rospy.Rate(20)
     while not rospy.is_shutdown():
         rospy.spin()
         rate.sleep()

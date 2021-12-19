@@ -89,9 +89,9 @@ public:
         error2=msg.data;
         float speed=0;
         if(abs(msg.data)>=0.25){
-            speed=1.2;
+            speed=0.8;
         }else{
-            speed=1.2;
+            speed=0.8;
         }
         follow_command.drive.speed = speed;
         //ROS_INFO("angle %f", angle);
