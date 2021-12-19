@@ -2,15 +2,16 @@
 import rospy
 import cv2
 import numpy as np
-from std_msgs.msg import Int32, Int32MultiArray, Float32, Bool
+from std_msgs.msg import Int32, Int32MultiArray, Float32
 from sensor_msgs.msg import Image
 import time
-from Tkinter import Button, Tk
+import os
 
 
-LANE_DETECTION_NODE_NAME = 'side_lane_detection_node'
+LANE_DETECTION_NODE_NAME = 'line_detection_node'
 CAMERA_TOPIC_NAME = '/zed2/zed_node/rgb/image_rect_color'
 CENTROID_TOPIC_NAME = '/centroid'
+
 
 global mid_x, mid_y
 mid_x = Int32()
@@ -29,18 +30,30 @@ class LaneDetection:
         self.init_node = rospy.init_node(LANE_DETECTION_NODE_NAME, anonymous=False)
         self.camera_subscriber = rospy.Subscriber(CAMERA_TOPIC_NAME, Image, self.locate_centroid)
         self.centroid_error_publisher = rospy.Publisher(CENTROID_TOPIC_NAME, Float32, queue_size=1)
+
+        # Getting ROS parameters set from calibration Node
+        # self.Hue_low = rospy.get_param('Hue_low')
+        # self.Hue_high = rospy.get_param('Hue_high')
+        # self.Saturation_low = rospy.get_param('Saturation_low')
+        # self.Saturation_high = rospy.get_param('Saturation_high')
+        # self.Value_low = rospy.get_param('Value_low')
+        # self.Value_high = rospy.get_param('Value_high')
+        # self.gray_lower = rospy.get_param('gray_lower')
+        # self.inverted_filter = rospy.get_param('inverted_filter')
+        # self.number_of_lines = rospy.get_param('number_of_lines')
+        # self.error_threshold = rospy.get_param('error_threshold')
+        # self.min_width = rospy.get_param('Width_min')
+        # self.max_width = rospy.get_param('Width_max')
+        # self.start_height = rospy.get_param('camera_start_height')
+        # self.bottom_height = rospy.get_param('camera_bottom_height')
+        # self.left_width = rospy.get_param('camera_left_width')
+        # self.right_width = rospy.get_param('camera_right_width')
         self.Hue_low = 20 # 32
-        self.Hue_high = 60 # 53
-        self.Saturation_low = 90
+        self.Hue_high = 53 # 53
+        self.Saturation_low = 100
         self.Saturation_high = 255
         self.Value_low = 0
         self.Value_high = 255
-        # self.Hue_low = 20 # 32
-        # self.Hue_high = 65 # 53
-        # self.Saturation_low = 70
-        # self.Saturation_high = 255
-        # self.Value_low = 0
-        # self.Value_high = 255
         self.inverted_filter = 0
         self.number_of_lines = 5
         self.error_threshold = 0.1
@@ -48,33 +61,10 @@ class LaneDetection:
         self.max_width = 671
         # original width: 672
         # original height: 376
-        self.start_height = 90
+        self.start_height = 80
         self.bottom_height = 375
         self.left_width = 0
         self.right_width = 671
-
-        self.lane_Hue_low = 20
-        self.lane_Hue_high = 240
-        self.lane_Saturation_low = 0
-        self.lane_Saturation_high = 255 
-        self.lane_Value_low = 190
-        self.lane_Value_high = 255
-        self.left=True
-
-        def left_callback():
-            self.left=True
-            #print("LEFT")
-
-        def right_callback():
-            self.left=False
-            #print("RIGHT")
-
-        self.master=Tk()
-        self.l = Button(self.master, text="LEFT", command=left_callback)  
-        self.r = Button(self.master, text="RIGHT", command=right_callback)  
-        self.l.pack()
-        self.r.pack()
-        self.master.mainloop()
 
         # Display Parameters
         rospy.loginfo(
@@ -94,24 +84,24 @@ class LaneDetection:
             '\nleft_width: {}'.format(self.left_width) +
             '\nright_width: {}'.format(self.right_width))
 
-    
-
     def locate_centroid(self, data):
         # Image processing from rosparams
         frame = decodeImage(data.data, 376, 672)
+        cv2.imwrite('experiment.jpg', frame)
+
         cv2.imshow('frame', frame)
 
         # cropping
         self.image_width = int(self.right_width - self.left_width)
         img = frame[self.start_height:self.bottom_height, self.left_width:self.right_width]
-        #left_tri = np.array([(0, 0), (0, img.shape[0]-1), (int(img.shape[1] * 0.25), 0)])
-        #right_tri = np.array([(img.shape[1]-1, 0), (img.shape[1]-1, img.shape[0]-1), (int(img.shape[1] * 0.75), 0)])
-        #img = cv2.drawContours(img, [left_tri, right_tri], -1, (255,255,255), -1)
+        left_tri = np.array([(0, 0), (0, img.shape[0]-1), (int(img.shape[1] * 0.25), 0)])
+        right_tri = np.array([(img.shape[1]-1, 0), (img.shape[1]-1, img.shape[0]-1), (int(img.shape[1] * 0.75), 0)])
+        img = cv2.drawContours(img, [left_tri, right_tri], -1, (255,255,255), -1)
 
-        img = cv2.GaussianBlur(img, (3,3), cv2.BORDER_DEFAULT)
-        #kernel_3 = np.ones((3,3), np.uint8)
+        img = cv2.GaussianBlur(img, (5,5), cv2.BORDER_DEFAULT)
+        kernel_3 = np.ones((3,3), np.uint8)
         kernel_5 = np.ones((5,5), np.uint8)
-        #img = cv2.erode(img, kernel_3, iterations=1)
+        img = cv2.erode(img, kernel_3, iterations=1)
         img = cv2.dilate(img, kernel_5, iterations=1)
 
         cv2.imshow('cropped', img)
@@ -127,18 +117,11 @@ class LaneDetection:
         upper = np.array([self.Hue_high, self.Saturation_high, self.Value_high])
         mask = cv2.inRange(hsv, lower, upper)
 
-        lane_lower = np.array([self.lane_Hue_low, self.lane_Saturation_low, self.lane_Value_low])
-        lane_upper = np.array([self.lane_Hue_high, self.lane_Saturation_high, self.lane_Value_high])
-        lane_mask = cv2.inRange(hsv, lane_lower, lane_upper)
-
         # creating true/false image
         if self.inverted_filter == 1:
             bitwise_mask = cv2.bitwise_and(img, img, mask=cv2.bitwise_not(mask))
         else:
             bitwise_mask = cv2.bitwise_and(img, img, mask=mask)
-
-        lane_bitwise_mask= cv2.bitwise_and(img,img, mask=lane_mask)
-        lane_gray = cv2.cvtColor(lane_bitwise_mask, cv2.COLOR_BGR2GRAY)
 
         # changing to gray color space
         gray = cv2.cvtColor(bitwise_mask, cv2.COLOR_BGR2GRAY)
@@ -147,31 +130,8 @@ class LaneDetection:
         gray_lower = 25
         gray_upper = 255
         (dummy, blackAndWhiteImage) = cv2.threshold(gray, gray_lower, gray_upper, cv2.THRESH_BINARY)
-        contours, dummy = cv2.findContours(blackAndWhiteImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # CHAIN_APPROX_NONE
+        contours, dummy = cv2.findContours(blackAndWhiteImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-        (dummy, lane_blackAndWhiteImage) = cv2.threshold(lane_gray, gray_lower, gray_upper, cv2.THRESH_BINARY)
-        lane_contours, dummy = cv2.findContours(lane_blackAndWhiteImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
-        #c=max(lane_contours,key=cv2.contourArea)
-        sort_cnt = sorted(lane_contours, key=cv2.contourArea)
-        try:
-            c=sort_cnt[-2]
-            x,y,w,h = cv2.boundingRect(c)
-            #img = cv2.drawContours(img, c, -1, (0, 255, 0), 3)
-            cm = cv2.moments(c)
-            cmx = int(cm['m10'] / cm['m00'])
-            cmy = int(cm['m01'] / cm['m00'])
-        except:
-            print("Unable to see other lane")
-        try:
-            d=sort_cnt[-1]
-            x,y,w,h = cv2.boundingRect(d)
-            #img = cv2.drawContours(img, d, -1, (0, 255, 0), 3)
-            dm = cv2.moments(d)
-            dmx = int(dm['m10'] / dm['m00'])
-            dmy = int(dm['m01'] / dm['m00'])
-        except:
-            print("Can't see lane")
         # Setting up data arrays
         centers = []
         cx_list = []
@@ -206,8 +166,8 @@ class LaneDetection:
                     cy_list.append(cy)
                     cv2.circle(img, (cx, cy), 7, (255, 0, 0), -1)
                     img = cv2.line(img, start_point, end_point, (0,0,0), 2)
-                    #img = cv2.line(img, start_point_thresh_pos, end_point_thresh_pos, (0,0,255), 2)
-                    #img = cv2.line(img, start_point_thresh_neg, end_point_thresh_neg, (0,0,255), 2)
+                    img = cv2.line(img, start_point_thresh_pos, end_point_thresh_pos, (0,0,255), 2)
+                    img = cv2.line(img, start_point_thresh_neg, end_point_thresh_neg, (0,0,255), 2)
                 except ZeroDivisionError:
                     pass
 
@@ -218,7 +178,6 @@ class LaneDetection:
                 count = 0
                 for cx_pos in cx_list:
                     error = float((float(self.image_width/2) - cx_pos) / (self.image_width/2))
-                    error = float((float(self.image_width/2) - (cx_pos+float(self.image_width)/4)) / (self.image_width/2)) # TEST FOR LANE
                     error_list.append(error)
                 avg_error = (sum(error_list) / float(len(error_list)))
                 p_horizon_diff = error_list[0] - error_list[-1]
@@ -228,53 +187,19 @@ class LaneDetection:
                         error = 0
                         error_list[count] = error
                     count += 1
-                #error_x = min(error_list, key=abs)
-                #error_x_index = error_list.index(min(error_list, key=abs))
-                #cy_index = cy_list.index(min(cy_list, key=abs))
-                #mid_x, mid_y = cx_list[cy_index], cy_list[cy_index]
-                try:
-                    cy_index=cy_list.index(sorted(cy_list)[1])
-                except:
-                    cy_index=1
-                    print("Not enough points")
-                #mid_y=(cy_list[cy_index]+cy_list[cy_list.index(sorted(cy_list)[2])])/2
-                print("mid_y: {}".format(mid_y))
-                #mid_x=(cx_list[cy_index]+cmx)/2
-                #mid_x2=(cx_list[cy_index]+dmx)/2
-                #side_change=(mid_y-35)/float(300)
-                try:
-                    mid_x=cx_list[cy_index]+self.image_width/6.5#(self.image_width)*side_change
-                    mid_x2=cx_list[cy_index]-self.image_width/6.5#(self.image_width)*side_change
-                except:
-                    mid_x=self.image_width/2
-                    mid_x2=self.image_width/2
-                #error_x = error_list[cy_index]
-                #print("curvy road: {}, {}".format(error_x, error_list))
-                err1 = mid_x-self.image_width/2     #right lane
-                err2 = mid_x2-self.image_width/2    #left lane
-                if(abs(err1)<abs(err2)):
-                    print("right lane")
-                else:
-                    print("left lane")    
-                #cv2.circle(img, (mid_x, cmy), 7, (0, 0, 255), -1)
-                draw_y=65
-                cv2.circle(img, (int(mid_x), draw_y), 7, (0, 50, 200), -1)
+                error_x = min(error_list, key=abs)
+                error_x_index = error_list.index(min(error_list, key=abs))
+                cy_index = cy_list.index(min(cy_list, key=abs))
+                mid_x, mid_y = cx_list[cy_index], cy_list[cy_index]
+                error_x = error_list[cy_index]
+                print("curvy road: {}, {}".format(error_x, error_list))
+        
+                cv2.circle(img, (mid_x, mid_y), 7, (255, 255, 255), -1)
                 start_point_error = (int(image_width/2), mid_y)
-                #img = cv2.line(img, start_point_error, (mid_x, mid_y), (0,0,255), 4)
-
-                #cv2.circle(img, (mid_x2, dmy), 7, (0, 0, 255), -1)
-                cv2.circle(img, (int(mid_x2), draw_y), 7, (0, 0, 255), -1)
-                #img = cv2.line(img, start_point_error, (mid_x2, mid_y), (0,0,255), 4)
+                img = cv2.line(img, start_point_error, (mid_x, mid_y), (0,0,255), 4)
                 self.centroid_error = Float32()
-                if(self.left):
-                    error_x=-err2/985
-                    print("following left")
-                else:
-                    error_x=-err1/985
-                    print("following right")
                 self.centroid_error.data = float(error_x)
                 self.centroid_error_publisher.publish(self.centroid_error)
-                print("Publish err: {}".format(error_x))
                 centers = []
                 cx_list = []
                 cy_list = []
@@ -286,11 +211,59 @@ class LaneDetection:
         except ValueError:
             pass
 
+        # try:
+        #     self.centroid_error = Float32()
+        #     if len(cx_list) > 1:
+        #         error_list = []
+        #         count = 0
+        #         for cx_pos in cx_list:
+        #             error = float(((self.image_width/2) - cx_pos) / (self.image_width/2))
+        #             error_list.append(error)
+        #         avg_error = (sum(error_list) / float(len(error_list)))
+        #         p_horizon_diff = error_list[0] - error_list[-1]
+        #         if abs(p_horizon_diff) <= self.error_threshold:
+        #             error_x = avg_error
+        #             pixel_error = int((self.image_width/2)*(1-error_x))
+        #             mid_x, mid_y = pixel_error, int((image_height/2))
+        #             print("straight curve: {}, {}".format(error_x, error_list))
+        #         else: 
+        #             for error in error_list:
+        #                 if abs(error) < self.error_threshold:
+        #                     error = 1
+        #                     error_list[count] = error
+        #                 count+=1
+        #             error_x = min(error_list, key=abs)
+        #             error_x_index = error_list.index(min(error_list, key=abs))
+        #             mid_x, mid_y = cx_list[error_x_index], cy_list[error_x_index]
+        #             print("curvy road: {}, {}".format(error_x, error_list))
+                
+        #         cv2.circle(img, (mid_x, mid_y), 7, (255, 0, 0), -1)
+        #         start_point_error = (int(image_width/2), mid_y)
+        #         img = cv2.line(img, start_point_error, (mid_x, mid_y), (0,0,255), 4)
+        #         self.centroid_error.data = float(error_x)
+        #         self.centroid_error_publisher.publish(self.centroid_error)
+        #         centers = []
+        #         cx_list = []
+        #         cy_list = []
+        #     elif len(cx_list) == 1:
+        #         mid_x, mid_y = cx_list[0], cy_list[0]
+        #         error_x = float(((self.image_width/2) - mid_x) / (self.image_width/2))
+        #         cv2.circle(img, (mid_x, mid_y), 7, (0, 0, 255), -1)
+        #         self.centroid_error.data = error_x
+        #         self.centroid_error_publisher.publish(self.centroid_error)
+        #         print("only detected one line")
+
+        #     centers = []
+        #     cx_list = []
+        #     cy_list = []
+        #     error_list = [0] * self.number_of_lines
+        # except ValueError:
+        #     pass
+
+
         # plotting results
-        #cv2.imshow('lane_blackAndWhiteImage', lane_blackAndWhiteImage)
         cv2.imshow('img', img)
         cv2.imshow('blackAndWhiteImage', blackAndWhiteImage)
-        
         cv2.waitKey(1)
         #print(mid_x, mid_y)
 

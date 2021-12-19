@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>line_detection</name>
+  <name>racecar_camera</name>
   <version>0.0.0</version>
   <description>The line_detection package</description>
 
@@ -62,10 +62,29 @@
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
 
+  <build_depend>image_transport</build_depend>
+  <build_export_depend>image_transport</build_export_depend>
+  <exec_depend>image_transport</exec_depend>
+
+  <build_depend>cv_bridge</build_depend>
+  <build_export_depend>cv_bridge</build_export_depend>
+  <exec_depend>cv_bridge</exec_depend>
+
+  <build_depend>pluginlib</build_depend>
+  <build_export_depend>pluginlib</build_export_depend>
+  <exec_depend>pluginlib</exec_depend>
+
+  <build_depend>nodelet</build_depend>
+  <build_export_depend>nodelet</build_export_depend>
+  <exec_depend>nodelet</exec_depend>
+
+  <build_depend>geometry_msgs</build_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <exec_depend>geometry_msgs</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-
+    
   </export>
 </package>
