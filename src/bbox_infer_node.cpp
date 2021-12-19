@@ -17,7 +17,7 @@ BBoxInfer::BBoxInfer(const ros::NodeHandle& nh) : nh_(nh), it_(nh)
     // color_sub = it_.subscribe("/usb_cam/image_raw", 1, &BBoxInfer::colorCallback, this);
     color_sub = it_.subscribe("/zed2/zed_node/rgb/image_rect_color", 
         1, &BBoxInfer::colorCallback, this, image_transport::TransportHints("compressed"));
-    box_center_pub = nh_.advertise<geometry_msgs::Point32>("box_center", 1000);
+    box_center_pub = nh_.advertise<geometry_msgs::PointStamped>("box_center", 1000);
 }
 
 BBoxInfer::~BBoxInfer()
@@ -28,6 +28,7 @@ BBoxInfer::~BBoxInfer()
 
 void BBoxInfer::colorCallback(const sensor_msgs::ImageConstPtr& msg)
 {
+    std_msgs::Header msg_header = msg->header;
     cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
     cv::Mat color_frame = cv_ptr->image;
     cv::resize(color_frame, color_frame, cv::Size(640, 360));
@@ -45,9 +46,10 @@ void BBoxInfer::colorCallback(const sensor_msgs::ImageConstPtr& msg)
     post_process(&result_temp, select_box);
     if (select_box[0] == 1.0) {
         cv::rectangle(label_color_frame, cv::Point((int)select_box[1], (int)select_box[2]), cv::Point((int)select_box[3], (int)select_box[4]), cv::Scalar(0, 255, 0));
-        geometry_msgs::Point32 box_center;
-        box_center.x = (select_box[1] + select_box[3]) / 2 / INPUT_W;
-        box_center.y = (select_box[2] + select_box[4]) / 2 / INPUT_H;
+        geometry_msgs::PointStamped box_center;
+        box_center.header = msg_header;
+        box_center.point.x = (select_box[1] + select_box[3]) / 2 / INPUT_W;
+        box_center.point.y = (select_box[2] + select_box[4]) / 2 / INPUT_H;
         box_center_pub.publish(box_center);
     }
 

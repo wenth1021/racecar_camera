@@ -7,7 +7,8 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/CompressedImage.h>
-#include <geometry_msgs/Point32.h>
+#include <geometry_msgs/PointStamped.h>
+#include <std_msgs/Header.h>
 
 class BBoxInfer
 {

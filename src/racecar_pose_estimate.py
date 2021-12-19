@@ -1,9 +1,10 @@
 #!/usr/bin/env python
+from logging import currentframe
 import rospy
 import cv2
 import numpy as np
 from sensor_msgs.msg import Image, CameraInfo
-from geometry_msgs.msg import Point32
+from geometry_msgs.msg import PointStamped
 
 
 RACECAR_DETECTION_NODE_NAME = 'racecar_pose_node'
@@ -25,14 +26,16 @@ class RacecarPoseEstimate:
         self.init_node = rospy.init_node(RACECAR_DETECTION_NODE_NAME, anonymous=False)
         self.camera_subscriber = rospy.Subscriber(CAMERA_TOPIC_NAME, Image, self.image_callback)
         self.camera_info_subscriber = rospy.Subscriber(CAMERA_INFO_TOPIC_NAME, CameraInfo, self.camera_info_callback)
-        self.box_center_subscriber = rospy.Subscriber(BOX_CENTER_TOPIC_NAME, Point32, self.box_center_callback)
-        self.racecar_position_publisher = rospy.Publisher(RACECAR_POSITION_TOPIC_NAME, Point32, queue_size=1)
+        self.box_center_subscriber = rospy.Subscriber(BOX_CENTER_TOPIC_NAME, PointStamped, self.box_center_callback)
+        self.racecar_position_publisher = rospy.Publisher(RACECAR_POSITION_TOPIC_NAME, PointStamped, queue_size=1)
 
         # variable for storing data from messages
         self.intrinsic_matrix = None
         self.frame = None
         self.box_center_x = None
         self.box_center_y = None
+        self.prev_time = None
+        self.prev_pose = None
 
         # manually defined transformation from camera frame to world frame (ego racecar frame)
         self.T_cam_2_world = np.array([[0.085], [0.3], [0.14]])
@@ -49,8 +52,8 @@ class RacecarPoseEstimate:
         # cv2.waitKey(1)
 
     def box_center_callback(self, data):
-        self.box_center_x = int(data.x * 672)
-        self.box_center_y = int(data.y * 376)
+        self.box_center_x = int(data.point.x * 672)
+        self.box_center_y = int(data.point.y * 376)
         print('Center: {}, {}'.format(self.box_center_x, self.box_center_y))
         if self.frame is not None:
             self.frame = cv2.circle(self.frame, (self.box_center_x, self.box_center_y), 7, (255, 0, 0), -1)
@@ -72,10 +75,22 @@ class RacecarPoseEstimate:
             world_coord = world_coord - (world_coord - cam_coord) / (world_coord[2, 0] - cam_coord[2, 0]) * world_coord[2, 0]
 
             print('Racecar Position: \n{}'.format(world_coord))
-            self.racecar_pos = Point32()
-            self.racecar_pos.x = float(world_coord[0, 0])
-            self.racecar_pos.y = float(world_coord[1, 0])
-            self.racecar_pos.z = float(world_coord[2, 0])
+            self.racecar_pos = PointStamped()
+            self.racecar_pos.header = data.header
+            self.racecar_pos.point.x = float(world_coord[0, 0])
+            self.racecar_pos.point.y = float(world_coord[1, 0])
+
+            # velocity calculation
+            if self.prev_time is not None:
+                current_time = float(data.header.stamp.secs) + float(data.header.stamp.nsecs) / pow(10, 9)
+                self.racecar_pos.point.z = (float(world_coord[1, 0]) - float(self.prev_pose[1, 0])) / (current_time - self.prev_time)
+                print('Relative Speed in y: {}'.format(self.racecar_pos.point.z))
+            else:
+                self.racecar_pos.point.z = 0.0
+            
+            self.prev_time = float(data.header.stamp.secs) + float(data.header.stamp.nsecs) / pow(10, 9)
+            self.prev_pose = world_coord
+
             self.racecar_position_publisher.publish(self.racecar_pos)
 
     def camera_info_callback(self, data):
