@@ -42,13 +42,22 @@ Previously, F1Tenth racecar systems relied on the Lidar for navigation and did n
 ## Instructions for Using the Package
 
 ## Demo
-
+Click the images to see the videos.
 ### Lane following
+[![lane_following_demo](http://img.youtube.com/vi/9chVtg-OG6I/0.jpg)](http://www.youtube.com/watch?v=9chVtg-OG6I&list=PLkG99R12EVl58YCTZNS6t8nJl1Y91_RCd&index=2 "F1Tenth Racecar Lane Following")
 
 ### Lane Switching
+[![lane_switching_demo1](http://img.youtube.com/vi/aDwI4A_th8c/0.jpg)](http://www.youtube.com/watch?v=aDwI4A_th8c&list=PLkG99R12EVl58YCTZNS6t8nJl1Y91_RCd&index=3 "F1Tenth Racecar Lane Switching #1")
+[![lane_switching_demo2](http://img.youtube.com/vi/OUIqxRfpbgI/0.jpg)](http://www.youtube.com/watch?v=OUIqxRfpbgI&list=PLkG99R12EVl58YCTZNS6t8nJl1Y91_RCd&index=4 "F1Tenth Racecar Lane Switching #2")
+
+### Racecar Detection and Relative Position Estimation
+[![racecar_detection_demo1](http://img.youtube.com/vi/UgmHyZv_5KI/0.jpg)](http://www.youtube.com/watch?v=UgmHyZv_5KI&list=PLkG99R12EVl58YCTZNS6t8nJl1Y91_RCd&index=1 "F1Tenth Racecar Detection and Relative Position Estimation")
 
 ### Overtaking
+[![overtaking_demo1](http://img.youtube.com/vi/RzejdeyGEFM/0.jpg)](http://www.youtube.com/watch?v=RzejdeyGEFM&list=PLkG99R12EVl58YCTZNS6t8nJl1Y91_RCd&index=5 "F1Tenth Racecar Overtaking #1")
+[![overtaking_demo2](http://img.youtube.com/vi/JiLgpS6LCNQ/0.jpg)](http://www.youtube.com/watch?v=JiLgpS6LCNQ&list=PLkG99R12EVl58YCTZNS6t8nJl1Y91_RCd&index=6 "F1Tenth Racecar Overtaking #2")
 
 ### Going forward without overtaking
+[![overtaking_demo3](http://img.youtube.com/vi/QXwajsEyNPg/0.jpg)](http://www.youtube.com/watch?v=QXwajsEyNPg&list=PLkG99R12EVl58YCTZNS6t8nJl1Y91_RCd&index=7 "F1Tenth Racecar Overtaking #3")
 
 ## Future Development and Recommendations
