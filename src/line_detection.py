@@ -30,24 +30,7 @@ class LaneDetection:
         self.init_node = rospy.init_node(LANE_DETECTION_NODE_NAME, anonymous=False)
         self.camera_subscriber = rospy.Subscriber(CAMERA_TOPIC_NAME, Image, self.locate_centroid)
         self.centroid_error_publisher = rospy.Publisher(CENTROID_TOPIC_NAME, Float32, queue_size=1)
-
-        # Getting ROS parameters set from calibration Node
-        # self.Hue_low = rospy.get_param('Hue_low')
-        # self.Hue_high = rospy.get_param('Hue_high')
-        # self.Saturation_low = rospy.get_param('Saturation_low')
-        # self.Saturation_high = rospy.get_param('Saturation_high')
-        # self.Value_low = rospy.get_param('Value_low')
-        # self.Value_high = rospy.get_param('Value_high')
-        # self.gray_lower = rospy.get_param('gray_lower')
-        # self.inverted_filter = rospy.get_param('inverted_filter')
-        # self.number_of_lines = rospy.get_param('number_of_lines')
-        # self.error_threshold = rospy.get_param('error_threshold')
-        # self.min_width = rospy.get_param('Width_min')
-        # self.max_width = rospy.get_param('Width_max')
-        # self.start_height = rospy.get_param('camera_start_height')
-        # self.bottom_height = rospy.get_param('camera_bottom_height')
-        # self.left_width = rospy.get_param('camera_left_width')
-        # self.right_width = rospy.get_param('camera_right_width')
+        
         self.Hue_low = 20 # 32
         self.Hue_high = 53 # 53
         self.Saturation_low = 100
