@@ -12,6 +12,8 @@ CAMERA_TOPIC_NAME = '/zed2/zed_node/rgb/image_rect_color'
 CAMERA_INFO_TOPIC_NAME = '/zed2/zed_node/rgb/camera_info'
 BOX_CENTER_TOPIC_NAME = 'box_center'
 RACECAR_POSITION_TOPIC_NAME = 'racecar_position'
+# set visualization to True if you want to visualize the other racecar's relative position
+visualization = True
 
 
 def decodeImage(data, height, width):
@@ -47,18 +49,33 @@ class RacecarPoseEstimate:
     def image_callback(self, data):
         # Image processing from rosparams
         self.frame = decodeImage(data.data, 376, 672)
-        # cv2.imshow('frame', self.frame)
-        # # plotting results
-        # cv2.waitKey(1)
+        if visualization:
+            image = np.zeros([400,400,3],dtype=np.uint8)
+            meter_per_pixel = 4.0 / 400
+            car_width = 0.25 / meter_per_pixel
+            car_length = 0.32 / meter_per_pixel
+            image.fill(255)
+            offset = np.array([200, 200])
+            self_pose = np.array([0, 0]) + offset
+            image = cv2.rectangle(image, (int(self_pose[0]), int(self_pose[1] - car_length)), 
+                (int(self_pose[0] + car_width), int(self_pose[1])), (255, 0, 0), 4)
+            if self.prev_pose is not None:
+                other_pose = np.array([self.prev_pose[0,0], -self.prev_pose[1,0]]) / meter_per_pixel + offset
+                image = cv2.rectangle(image, (int(other_pose[0] - car_width / 2), int(other_pose[1] - car_length)), 
+                    (int(other_pose[0] + car_width / 2), int(other_pose[1])), (0, 0, 255), 4)
+                image = cv2.line(image, (int(self_pose[0]), int(self_pose[1])), 
+                    (int(other_pose[0]), int(other_pose[1])), (0,255,0), 2)
+            cv2.imshow('visualization', image)
+            cv2.waitKey(1)
 
     def box_center_callback(self, data):
         self.box_center_x = int(data.point.x * 672)
         self.box_center_y = int(data.point.y * 376)
         print('Center: {}, {}'.format(self.box_center_x, self.box_center_y))
-        if self.frame is not None:
-            self.frame = cv2.circle(self.frame, (self.box_center_x, self.box_center_y), 7, (255, 255, 255), -1)
-            cv2.imshow('frame', self.frame)
-            cv2.waitKey(1)
+        # if self.frame is not None:
+        #     self.frame = cv2.circle(self.frame, (self.box_center_x, self.box_center_y), 7, (255, 255, 255), -1)
+        #     cv2.imshow('frame', self.frame)
+        #     cv2.waitKey(1)
 
         pixel_coord = np.array([[self.box_center_x], [self.box_center_y], [1]])
 
