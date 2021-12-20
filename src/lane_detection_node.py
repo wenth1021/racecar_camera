@@ -38,12 +38,7 @@ class LaneDetection:
         self.Saturation_high = 255
         self.Value_low = 0
         self.Value_high = 255
-        # self.Hue_low = 20 # 32
-        # self.Hue_high = 65 # 53
-        # self.Saturation_low = 70
-        # self.Saturation_high = 255
-        # self.Value_low = 0
-        # self.Value_high = 255
+        # ^Above values are tuned for yellow tape detection in indoor environment (Levine Hall)
         self.inverted_filter = 0
         self.number_of_lines = 5
         self.error_threshold = 0.1
@@ -62,20 +57,19 @@ class LaneDetection:
         self.lane_Saturation_high = 255 
         self.lane_Value_low = 190
         self.lane_Value_high = 255
+        #For white tape detection(lane outer markings)
 
-        self.left=True
-        self.overtake_threshold = 2
-        self.overtake_time = 0.0
+        self.left=True      #Following left lane = True, Following right lane = False
+        self.overtake_threshold = 2     # Longitudinal overtake threshold 
+        self.overtake_time = 0.0        # Keeps track of when overtaking is performed
         self.overtake_time_threshold = 2.33/1.2     # Distance/Speed (Assuming static obstacle)
         self.swap_back = True
 
         def left_callback():
             self.left=True
-            #print("LEFT")
 
         def right_callback():
             self.left=False
-            #print("RIGHT")
 
         self.master=Tk()
         self.l = Button(self.master, text="LEFT", command=left_callback)  
@@ -103,23 +97,18 @@ class LaneDetection:
             '\nright_width: {}'.format(self.right_width))
 
     def overtake_decision(self, data):
-        print("receive  racecar pose")
         other_x=data.point.x
         other_y=data.point.y
         other_rel_speed = data.point.z
-        print("Y distance: {}".format(other_y))
-        print("X distance: {}".format(other_x))
         current_time=rospy.get_time()
-        print("current time: {}".format(current_time))
-        print("overtake_time: {}".format(self.overtake_time))
-        if (other_y < self.overtake_threshold 
-            and (other_x < 0.485 and other_x > -0.235) 
-            and current_time > self.overtake_time + 10):
+        if (other_y < self.overtake_threshold       # Obstacle within longitudinal threshold
+            and (other_x < 0.485 and other_x > -0.235)      # Obstacle within lateral threshold
+            and current_time > self.overtake_time + 10):        # Cooldown period after overtake maneuver 
             #and current_time > self.overtake_time + self.overtake_time_threshold):
             print("Lane Changed")
             self.left=not self.left     # Change Lanes
-            self.overtake_time=rospy.get_time()     #Time of decision
-            self.swap_back = False
+            self.overtake_time=rospy.get_time()     #Time of overtake decision
+            self.swap_back = False      # 
             #self.overtake_threshold=-(self.overtake_threshold+0.33)/other_rel_speed      #Time to overtake
 
 
@@ -144,7 +133,6 @@ class LaneDetection:
         #cv2.imshow('cropped', img)
 
         image_width = self.right_width-self.left_width
-        image_height = self.bottom_height-self.start_height
 
         # changing color space to HSV
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -179,7 +167,6 @@ class LaneDetection:
         (dummy, lane_blackAndWhiteImage) = cv2.threshold(lane_gray, gray_lower, gray_upper, cv2.THRESH_BINARY)
         lane_contours, dummy = cv2.findContours(lane_blackAndWhiteImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-        #c=max(lane_contours,key=cv2.contourArea)
         sort_cnt = sorted(lane_contours, key=cv2.contourArea)
         try:
             c=sort_cnt[-2]
@@ -208,8 +195,6 @@ class LaneDetection:
         start_point = (int(self.image_width/2),0)
         end_point = (int(self.image_width/2),int(self.bottom_height))
 
-       # start_point_thresh_pos_x = int((self.image_width/2)*(1-self.error_threshold))
-        #start_point_thresh_neg_x = int((self.image_width/2)*(1+self.error_threshold))
         # plotting contours and their centroids
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
@@ -246,28 +231,17 @@ class LaneDetection:
                         error = 0
                         error_list[count] = error
                     count += 1
-                #error_x = min(error_list, key=abs)
-                #error_x_index = error_list.index(min(error_list, key=abs))
-                #cy_index = cy_list.index(min(cy_list, key=abs))
-                #mid_x, mid_y = cx_list[cy_index], cy_list[cy_index]
                 try:
                     cy_index=cy_list.index(sorted(cy_list)[1])
                 except:
                     cy_index=1
                     print("Not enough points")
-                #mid_y=(cy_list[cy_index]+cy_list[cy_list.index(sorted(cy_list)[2])])/2
-                #print("mid_y: {}".format(mid_y))
-                #mid_x=(cx_list[cy_index]+cmx)/2
-                #mid_x2=(cx_list[cy_index]+dmx)/2
-                #side_change=(mid_y-35)/float(300)
                 try:
                     mid_x=cx_list[cy_index]+self.image_width/6.5#(self.image_width)*side_change
                     mid_x2=cx_list[cy_index]-self.image_width/6.5#(self.image_width)*side_change
                 except:
                     mid_x=self.image_width/2
                     mid_x2=self.image_width/2
-                #error_x = error_list[cy_index]
-                #print("curvy road: {}, {}".format(error_x, error_list))
                 err1 = mid_x-self.image_width/2     #right lane
                 err2 = mid_x2-self.image_width/2    #left lane
                 if(abs(err1)<abs(err2)):
@@ -284,7 +258,7 @@ class LaneDetection:
                 cv2.circle(img, (int(mid_x2), draw_y), 7, (0, 0, 255), -1)
                 #img = cv2.line(img, start_point_error, (mid_x2, mid_y), (0,0,255), 4)
                 self.centroid_error = Float32()
-                if(rospy.get_time()>self.overtake_time+2.5 and self.swap_back==False):
+                if(rospy.get_time()>self.overtake_time+2.5 and self.swap_back==False):      #Swap back lanes after overtaking
                     self.swap_back=True
                     self.left = not self.left
                 if(self.left):
