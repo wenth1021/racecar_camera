@@ -13,6 +13,7 @@
   - [**Demo**](#demo)
     - [Lane following](#lane-following)
     - [Lane Switching](#lane-switching)
+    - [Racecar Detection and Relative Position Estimation](#racecar-detection-and-relative-position-estimation)
     - [Overtaking](#overtaking)
     - [Going forward without overtaking](#going-forward-withou-overtaking)
   - [**Future Development and Recommendations**](#future-development-and-recommendations)
@@ -41,8 +42,38 @@ Previously, F1Tenth racecar systems relied on the Lidar for navigation and did n
 
 ## Instructions for Using the Package
 
+### Pre-requisites
+1. This package is only tested on Nvidia Jetson Xavier NX board with Jetpack 4.6
+2. [ZED SDK](https://www.stereolabs.com/docs/installation/jetson/), [ZED ROS wrapper](https://github.com/stereolabs/zed-ros-wrapper) (if you are also using ZED camera)
+
+### Common Steps
+1. Clone the repository into a catkin workspace and build
+```shell
+$ cd ~/catkin_ws/src
+$ git clone https://github.com/wenth1021/racecar_camera.git
+$ cd ../
+$ catkin_make
+$ source ./devel/setup.bash
+$ find . -name “*.py” -exec chmod +x {} \;
+```
+
+2. Launch the ZED ROS nodes
+```shell
+$ roslaunch zed_wrapper zed2.launch
+```
+
+### To run lane following and switching only
+1. Run the lane detection node
+```shell
+$ rosrun racecar_camera lane_detection_node.py
+```
+2. Run the waypoint following node
+```shell
+$ rosrun racecar_camera waypoint_follow
+```
+
 ## Demo
-Click the images to see the videos.
+Please click the images to see the videos.
 ### Lane following
 [![lane_following_demo](http://img.youtube.com/vi/9chVtg-OG6I/0.jpg)](http://www.youtube.com/watch?v=9chVtg-OG6I&list=PLkG99R12EVl58YCTZNS6t8nJl1Y91_RCd&index=2 "F1Tenth Racecar Lane Following")
 
