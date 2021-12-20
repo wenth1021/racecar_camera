@@ -4,8 +4,8 @@
 
   - [**Overview**](#overview)
   - [**Setup**](#setup)
-    - [Racecar Setup](#racecar_setup)
-    - [Track Layout](#track_layout)
+    - [Racecar Setup](#racecar-setup)
+    - [Track Layout](#track-layout)
   - [**Individual Components**](#individual-components)
     - [Line Detection](#line-detection)
     - [Lane Waypoint Generation](#lane-waypoint-generation)
@@ -13,12 +13,13 @@
     - [Racecar Detection with YOLO](#racecar-detection-with-yolo)
     - [Racecar Position Estimation](#racecar-position-estimation)
     - [Overtaking Maneuver](#overtaking-maneuver)
+  - [**Instructions for Using the Package**](#instructions-for-using-the-package)
   - [**Demo**](#demo)
     - [Lane following](#lane-following)
     - [Lane Switching](#lane-switching)
     - [Racecar Detection and Relative Position Estimation](#racecar-detection-and-relative-position-estimation)
     - [Overtaking](#overtaking)
-    - [Going forward without overtaking](#going-forward-withou-overtaking)
+    - [Going forward without overtaking](#going-forward-without-overtaking)
   - [**Future Development and Recommendations**](#future-development-and-recommendations)
 
 
@@ -131,7 +132,7 @@ Associated files: **bbox_infer_node.cpp, bbox_infer_node.h, infer_process.cpp, i
 
 The original racecar detection package was written by Zirui Zang. We modified the code to fit our use case. The model we are currently using is a Fast YOLO network with 9 convolutional layers, and we deploy it with TensorRT to get the advantage of accelerated GPU programming. Since the model was trained using images taken indoor, it may not work reliably in the outdoor setting. Please see the following image for the pipeline of racecar detection (image courtesy of Zirui Zang).
 <p align="center">
-<img src="media/racecar_detection_pipeline.png" alt="drawing" width="600"/>
+<img src="media/racecar_detection_pipeline.PNG" alt="drawing" width="600"/>
 </p>
 
 ### Racecar Position Estimation
